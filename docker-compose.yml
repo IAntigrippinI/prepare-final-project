@@ -1,0 +1,136 @@
+x-airflow-common:
+  &airflow-common
+  build: ./pipeline
+#  env_file:
+#    - .env
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+#    - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+    - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    - _PIP_ADDITIONAL_REQUIREMENTS=
+    - PYTHONPATH=/opt/airflow/src:/home/airflow/.local/lib/python3.11/site-packages
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${COMMON_DB_USERNAME}:${COMMON_DB_PASSWORD}@${DB_HOSTNAME_AIRFLOW}:${DB_PORT_AIRFLOW}/${DB_NAME_AIRFLOW}
+
+  volumes:
+    - ./pipeline/dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./pipeline/src:/opt/airflow/src
+    - ./pipeline/kbi_project:/opt/airflow/kbi_project
+  #  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    - db
+
+services:
+  db:
+    image: postgres:latest
+    container_name: ${PROJECT_NAME}-postgres
+    hostname: ${DB_HOSTNAME_AIRFLOW}
+    environment:
+      POSTGRES_USER: ${COMMON_DB_USERNAME}
+      POSTGRES_PASSWORD: ${COMMON_DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME_AIRFLOW}
+    ports:
+      - ${DB_PORT_AIRFLOW}:5432
+    volumes:
+      - airflow-postgres:/var/lib/postgresql/data
+
+  db-pipline:
+    image: postgres:latest
+    container_name: ${PROJECT_NAME}-postgres-pipline
+    hostname: ${DB_HOSTNAME_PIPELINE}
+    environment:
+      POSTGRES_USER: ${COMMON_DB_USERNAME}
+      POSTGRES_PASSWORD: ${COMMON_DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME_PIPELINE}
+    ports:
+      - ${DB_PORT_PIPELINE}:5432
+    volumes:
+      - parser-postgres:/var/lib/postgresql/data
+
+  db-adminer:
+    image: adminer
+    container_name: ${PROJECT_NAME}-db_editor
+    restart: always
+    environment:
+      - POSTGRES_USER=${COMMON_DB_USERNAME}
+      - POSTGRES_PASSWORD=${COMMON_DB_PASSWORD}
+      - POSTGRES_HOST=${DB_HOSTNAME_PIPELINE}
+      - POSTGRES_PORT=${DB_PORT_PIPELINE}
+      - POSTGRES_DB=${DB_NAME_PIPELINE}
+    expose:
+      - 8080
+    ports:
+      - 8082:8080
+    depends_on:
+      - db
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command: -c "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
+    depends_on:
+      - db
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    depends_on:
+      - airflow-init
+    command: webserver
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+
+  app:
+    build: ./app
+    container_name: app
+    ports:
+      - 8000:8000
+    volumes:
+      - ./app:/app:delegated # для быстрого перезапуска приложения
+      - ./pipeline/src/models:/app/models # Модели для предсказания
+
+
+#  frontend:
+#    build: ./frontend
+#    container_name: frontend
+#    ports:
+#      - 5173:5173
+#    volumes:
+#      - ./frontend/src:/frontend/src
+#    environment:
+#      - CHOKIDAR_USEPOLLING=true # для windows, без этого не подгружает изменения в запущенное приложение
+#
+#
+
+#  grafana:
+#    container_name: grafana
+#    environment:
+##      - ROOT_URL=https://${YOUR_DOMAIN}
+#      - GF_SECURITY_ADMIN_USER=admin
+#      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
+#      - GF_USERS_ALLOW_SIGN_UP=false
+##    network_mode: traefik_network
+#    restart: always
+#    ports:
+#      - 3000:3000
+#    volumes:
+#      - grafana-data:/var/lib/grafana:rw
+#    image: grafana/grafana:8.0.0
+#
+
+volumes:
+  parser-postgres:
+  airflow-postgres:
+  grafana-data:
+    driver: local

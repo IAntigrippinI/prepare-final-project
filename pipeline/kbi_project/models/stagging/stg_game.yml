@@ -1,0 +1,115 @@
+sources:
+  - name: public_data # для использования в скриптах
+    schema: public
+    tables:
+      - name: game
+      - name: table
+
+
+models:
+  - name: stg_game
+    description: "Тестирование"
+    columns:
+      - name: id
+        description: "id"
+        tests:
+          - not_null
+      - name: game_id
+        description: "game_id"
+        tests:
+          - not_null
+      - name: game_date
+        description: "game_date"
+        tests:
+          - not_null
+      - name: home_team
+        description: "home_team"
+        tests:
+          - not_null
+      - name: home_score
+        description: "home_score"
+        tests:
+          - not_null
+      - name: away_team
+        description: "away_team"
+        tests:
+          - not_null
+      - name: away_score
+        description: "away_score"
+        tests:
+          - not_null
+      - name: home_win
+        description: "home_win"
+        tests:
+          - not_null
+      - name: away_win
+        description: "away_win"
+        tests:
+          - not_null
+  - name: dim_team_current
+    description: "Текущая таблица команд"
+    columns:
+      - name: team_abbrev
+        description: ""
+        tests:
+          - not_null
+      - name: team_name
+        description: ""
+        tests:
+          - not_null
+      - name: conference
+        description: ""
+        tests:
+          - not_null
+      - name: division
+        description: ""
+        tests:
+          - not_null
+      - name: games_played
+        description: ""
+        tests:
+          - not_null
+      - name: wins
+        description: ""
+        tests:
+          - not_null
+      - name: losses
+        description: ""
+        tests:
+          - not_null
+      - name: ot_losses
+        description: ""
+        tests:
+          - not_null
+      - name: points
+        description: ""
+        tests:
+          - not_null
+      - name: point_percentage
+        description: ""
+        tests:
+          - not_null
+      - name: goals_for
+        description: ""
+        tests:
+          - not_null
+      - name: goals_against
+        description: ""
+        tests:
+          - not_null
+      - name: goal_differential
+        description: ""
+        tests:
+          - not_null
+      - name: conference_rank
+        description: ""
+        tests:
+          - not_null
+      - name: division_rank
+        description: ""
+        tests:
+          - not_null
+      - name: league_rank
+        description: ""
+        tests:
+          - not_null

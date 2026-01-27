@@ -1,0 +1,11 @@
+kbi_project:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: db-pipeline
+      user: admin
+      pass: admin
+      port: 5432
+      dbname: pipeline
+      schema: public
